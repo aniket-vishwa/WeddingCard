@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="hi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shubh Vivah | Manisha & Saurabh</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sandstone: '#FAF5EE',
+                        champagne: '#F1E6D6',
+                        terracotta: '#B85D4B',
+                        gold: '#C29B58',
+                        goldlight: '#E8D4A8',
+                        marigold: '#E28743',
+                        espresso: '#2E241F',
+                    },
+                    fontFamily: {
+                        garamond: ['Cormorant Garamond', 'serif'],
+                        jost: ['Jost', 'sans-serif'],
+                        devanagari: ['Noto Serif Devanagari', 'serif'],
+                        hind: ['Hind', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Hind:wght@400;500;600&family=Jost:wght@300;400;500;600&family=Noto+Serif+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Custom Customizations & Animations */
+        body {
+            background-color: #FAF5EE;
+            color: #2E241F;
+            overflow-x: hidden;
+            font-family: 'Hind', 'Jost', sans-serif;
+        }
+
+        /* 3D Gate Perspective */
+        .gate-container {
+            perspective: 1500px;
+        }
+        .door-left {
+            transform-origin: left center;
+            transition: transform 2.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        .door-right {
+            transform-origin: right center;
+            transition: transform 2.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        .gate-open .door-left {
+            transform: rotateY(-115deg);
+        }
+        .gate-open .door-right {
+            transform: rotateY(115deg);
+        }
+        .gate-open {
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s ease 1.8s, visibility 1s ease 1.8s;
+            visibility: hidden;
+        }
+
+        /* Custom Gold Borders & Patterns */
+        .gold-border-double {
+            border: 3px double #C29B58;
+        }
+        .bg-pattern {
+            background-image: radial-gradient(#C29B58 0.65px, transparent 0.65px), radial-gradient(#C29B58 0.65px, #FAF5EE 0.65px);
+            background-size: 26px 26px;
+            background-position: 0 0, 13px 13px;
+            background-opacity: 0.15;
+        }
+
+        /* Shimmer Effect for Buttons */
+        .btn-gold-shimmer {
+            background: linear-gradient(135deg, #B85D4B 0%, #C29B58 50%, #B85D4B 100%);
+            background-size: 200% 200%;
+            animation: shimmer 4s ease infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Rotating Mandala */
+        .rotate-mandala {
+            animation: spinMandala 40s linear infinite;
+        }
+        @keyframes spinMandala {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Print styling for PDF export */
+        @media print {
+            #audio-controls, #lang-toggle, .no-print, #gate-overlay {
+                display: none !important;
+            }
+            body {
+                background: white;
+                color: black;
+            }
+            .card-shadow {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+            }
+        }
+    </style>
+</head>
+<body class="relative min-h-screen selection:bg-goldlight selection:text-espresso">
+
+    <!-- Floating Canvas for Petal Parallax Animation -->
+    <canvas id="petalCanvas" class="fixed inset-0 pointer-events-none z-30"></canvas>
+
+    <!-- TOP CONTROL BAR (Fixed) -->
+    <header class="fixed top-0 left-0 right-0 z-40 px-4 py-3 flex justify-between items-center bg-sandstone/80 backdrop-blur-md border-b border-gold/30">
+        <div class="flex items-center space-x-2">
+            <span class="font-garamond text-xl font-bold tracking-wider text-terracotta">M & S</span>
+            <span class="text-xs text-gold font-devanagari">| शुभ विवाह</span>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <!-- Language Toggle Switch -->
+            <button id="langToggleBtn" onclick="toggleLanguage()" class="px-3 py-1 text-xs font-semibold rounded-full border border-gold bg-champagne text-espresso hover:bg-gold hover:text-white transition-all shadow-sm">
+                <i class="fa-solid fa-language mr-1"></i> <span id="langBtnText">English</span>
+            </button>
+
+            <!-- Audio Player Toggle -->
+            <button id="audioToggleBtn" onclick="toggleAudio()" class="w-8 h-8 rounded-full border border-gold bg-champagne text-terracotta flex items-center justify-center hover:bg-gold hover:text-white transition-all shadow-sm">
+                <i id="audioIcon" class="fa-solid fa-music text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Embedded Wedding Audio Player (Standard Audio File Track) -->
+    <audio id="weddingAudio" loop preload="auto" class="hidden">
+        <source src="wedding-song.mp3" type="audio/mpeg">
+        <source src="wedding-song.mp3" type="audio/mp3">
+    </audio>
+
+    <!-- ROYAL OPENING GATE OVERLAY -->
+    <div id="gate-overlay" class="fixed inset-0 z-50 gate-container flex items-center justify-center bg-espresso overflow-hidden">
+        <!-- Background Light Glow inside the arch -->
+        <div class="absolute inset-0 bg-radial from-amber-200/40 via-terracotta/20 to-espresso z-0"></div>
+
+        <!-- Left Sandstone/Wood Door -->
+        <div class="door-left absolute top-0 left-0 w-1/2 h-full bg-[#3D291F] border-r-2 border-gold/60 shadow-2xl flex flex-col justify-between items-end p-4 md:p-8 z-10" style="background-image: radial-gradient(#543A2C 1px, transparent 1px); background-size: 16px 16px;">
+            <!-- Top Jharokha Arch SVG Lattice Overlay -->
+            <div class="w-full max-w-xs opacity-20 text-gold my-auto">
+                <svg viewBox="0 0 100 200" class="w-full h-auto stroke-current fill-none" stroke-width="1">
+                    <path d="M 0 0 C 40 10, 50 40, 50 70 C 50 40, 60 10, 100 0 L 100 200 L 0 200 Z" />
+                    <circle cx="50" cy="110" r="30" stroke-dasharray="2 2"/>
+                    <path d="M 20 80 Q 50 120 80 80" />
+                </svg>
+            </div>
+            <!-- Peacock Brass Door Handle Left -->
+            <div class="my-auto mr-[-16px] md:mr-[-24px] w-8 h-16 md:w-12 md:h-24 bg-gradient-to-r from-gold to-amber-600 rounded-l-full border-2 border-goldlight shadow-xl flex items-center justify-center text-espresso z-20">
+                <i class="fa-solid fa-ring text-sm md:text-lg"></i>
+            </div>
+        </div>
+
+        <!-- Right Sandstone/Wood Door -->
+        <div class="door-right absolute top-0 right-0 w-1/2 h-full bg-[#3D291F] border-l-2 border-gold/60 shadow-2xl flex flex-col justify-between items-start p-4 md:p-8 z-10" style="background-image: radial-gradient(#543A2C 1px, transparent 1px); background-size: 16px 16px;">
+            <div class="w-full max-w-xs opacity-20 text-gold my-auto scale-x-[-1]">
+                <svg viewBox="0 0 100 200" class="w-full h-auto stroke-current fill-none" stroke-width="1">
+                    <path d="M 0 0 C 40 10, 50 40, 50 70 C 50 40, 60 10, 100 0 L 100 200 L 0 200 Z" />
+                    <circle cx="50" cy="110" r="30" stroke-dasharray="2 2"/>
+                    <path d="M 20 80 Q 50 120 80 80" />
+                </svg>
+            </div>
+            <!-- Peacock Brass Door Handle Right -->
+            <div class="my-auto ml-[-16px] md:ml-[-24px] w-8 h-16 md:w-12 md:h-24 bg-gradient-to-l from-gold to-amber-600 rounded-r-full border-2 border-goldlight shadow-xl flex items-center justify-center text-espresso z-20">
+                <i class="fa-solid fa-ring text-sm md:text-lg"></i>
+            </div>
+        </div>
+
+        <!-- Central Royal Wax Seal & Open Trigger Card -->
+        <div id="gate-center-card" class="relative z-20 flex flex-col items-center text-center p-6 md:p-10 max-w-sm mx-auto bg-sandstone/95 border-2 border-gold rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-700">
+            <!-- Detailed Royal Seated Ganesha SVG Icon -->
+            <div class="w-24 h-24 text-terracotta mb-1 flex items-center justify-center filter drop-shadow-md">
+                <svg viewBox="0 0 160 160" class="w-full h-full">
+                    <!-- Background Sunburst Halo (Suryamandala) -->
+                    <circle cx="80" cy="80" r="72" fill="#F1E6D6" stroke="#C29B58" stroke-width="1.5" stroke-dasharray="4 2" />
+                    <circle cx="80" cy="80" r="66" fill="none" stroke="#C29B58" stroke-width="0.8" />
+                    
+                    <!-- Crown (Mukut & Jewels) -->
+                    <path d="M 68 28 L 80 8 L 92 28 Q 80 22 68 28 Z" fill="#B85D4B" stroke="#C29B58" stroke-width="1.5" />
+                    <path d="M 62 38 L 80 24 L 98 38 Q 80 32 62 38 Z" fill="#C29B58" stroke="#B85D4B" stroke-width="1" />
+                    <circle cx="80" cy="14" r="3" fill="#C29B58" />
+                    <circle cx="80" cy="30" r="2.5" fill="#B85D4B" />
+
+                    <!-- Ears (Surpa Karna) -->
+                    <path d="M 62 42 C 34 32 26 58 52 68 C 60 71 64 64 64 60" fill="none" stroke="#B85D4B" stroke-width="2.2" stroke-linecap="round" />
+                    <path d="M 98 42 C 126 32 134 58 108 68 C 100 71 96 64 96 60" fill="none" stroke="#B85D4B" stroke-width="2.2" stroke-linecap="round" />
+
+                    <!-- Tilak (Trishul Tripundra) -->
+                    <path d="M 72 40 H 88 M 74 44 H 86 M 76 48 H 84" stroke="#C29B58" stroke-width="1.5" stroke-linecap="round" />
+                    <path d="M 80 38 V 52" stroke="#B85D4B" stroke-width="2" stroke-linecap="round" />
+                    <circle cx="80" cy="54" r="2" fill="#B85D4B" />
+
+                    <!-- Head & Eyes -->
+                    <ellipse cx="80" cy="52" rx="18" ry="16" fill="none" stroke="#B85D4B" stroke-width="1.8" />
+                    <path d="M 70 48 Q 74 51 77 49" stroke="#2E241F" stroke-width="1.2" fill="none" />
+                    <path d="M 90 48 Q 86 51 83 49" stroke="#2E241F" stroke-width="1.2" fill="none" />
+
+                    <!-- Trunk (Vaakratunda Left-curved) -->
+                    <path d="M 76 56 C 76 74 65 82 72 90 C 78 96 88 94 90 87 C 91 82 85 80 82 84 C 80 87 84 89 85 87" fill="none" stroke="#B85D4B" stroke-width="3" stroke-linecap="round" />
+
+                    <!-- Tusks (Right Ekadanta intact, Left broken) -->
+                    <path d="M 70 60 L 63 61" stroke="#C29B58" stroke-width="2.5" stroke-linecap="round" />
+                    <path d="M 90 60 L 95 62" stroke="#C29B58" stroke-width="2.5" stroke-linecap="round" />
+
+                    <!-- Seated Body & Dhoti (Chowki Mudra) -->
+                    <path d="M 64 68 C 50 78 46 95 56 108 C 66 118 94 118 104 108 C 114 95 110 78 96 68" fill="none" stroke="#B85D4B" stroke-width="2" />
+                    <path d="M 52 104 Q 80 116 108 104" stroke="#C29B58" stroke-width="2" fill="none" />
+
+                    <!-- Four Upper & Lower Hands (Chaturbhuj) -->
+                    <!-- Upper Left: Axe (Parashu) -->
+                    <path d="M 46 64 Q 36 56 40 48" stroke="#B85D4B" stroke-width="2" fill="none" />
+                    <circle cx="40" cy="46" r="4" fill="#C29B58" />
+                    <!-- Upper Right: Pasha (Noose/Lotus) -->
+                    <path d="M 114 64 Q 124 56 120 48" stroke="#B85D4B" stroke-width="2" fill="none" />
+                    <circle cx="120" cy="46" r="4" fill="#C29B58" />
+                    <!-- Lower Right: Abhaya Mudra (Blessing Hand) -->
+                    <path d="M 44 86 Q 34 88 38 96" stroke="#B85D4B" stroke-width="2" fill="none" />
+                    <circle cx="38" cy="96" r="3" fill="#B85D4B" />
+                    <!-- Lower Left: Modak Bowl (Laddoo Prasad) -->
+                    <path d="M 116 86 Q 124 90 120 98 Q 112 100 114 92 Z" fill="#F1E6D6" stroke="#C29B58" stroke-width="1.5" />
+                    <circle cx="118" cy="92" r="2" fill="#E28743" />
+                    <circle cx="114" cy="94" r="1.5" fill="#E28743" />
+
+                    <!-- Lotus Throne Base (Kamalasan) -->
+                    <path d="M 42 118 C 54 126 106 126 118 118 Q 130 134 80 138 Q 30 134 42 118 Z" fill="#B85D4B" opacity="0.85" />
+                    <path d="M 50 120 C 65 130 95 130 110 120" stroke="#C29B58" stroke-width="1.5" fill="none" />
+
+                    <!-- Mouse Mount (Mooshakraj at Lotus Base) -->
+                    <ellipse cx="122" cy="132" rx="6" ry="3" fill="#2E241F" />
+                    <circle cx="126" cy="130" r="2" fill="#2E241F" />
+                    <path d="M 128 132 Q 134 130 132 135" stroke="#2E241F" stroke-width="1" fill="none" />
+                    <!-- Tiny Modak in front of Mooshak -->
+                    <circle cx="114" cy="133" r="1.5" fill="#C29B58" />
+                </svg>
+            </div>
+            <p class="font-devanagari text-xs font-semibold text-terracotta tracking-widest uppercase mb-1">॥ ॐ श्री गणेशाय नमः ॥</p>
+            <h1 class="font-garamond text-2xl md:text-3xl font-bold text-terracotta mb-1">Manisha & Saurabh</h1>
+            <p class="text-xs text-stone-600 font-jost tracking-wider mb-4">DECEMBER 02, 2026 • VARANASI</p>
+            
+            <!-- Opening Wax Seal Trigger Button -->
+            <button onclick="openRoyalGate()" class="btn-gold-shimmer px-6 py-2.5 rounded-full text-white font-semibold text-sm shadow-xl hover:scale-105 transition-transform flex items-center justify-center space-x-2 border border-goldlight">
+                <i class="fa-solid fa-envelope-open text-xs"></i>
+                <span class="lang-txt" data-hi="निमंत्रण पत्र खोलें" data-en="Open Invitation">निमंत्रण पत्र खोलें</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN INVITATION CONTENT (7 SECTIONS) -->
+    <main class="relative z-10 max-w-4xl mx-auto pt-20 pb-16 px-4 space-y-16">
+
+        <!-- SECTION 1: HERO (Jharokha Arch & Couple Names) -->
+        <section id="hero" class="min-h-[85vh] flex flex-col justify-center items-center text-center relative py-12">
+            <!-- Decorative Rajasthani Jharokha Arch Frame -->
+            <div class="relative w-full max-w-md p-8 md:p-12 bg-champagne/60 rounded-3xl border-2 border-gold/40 shadow-xl backdrop-blur-sm">
+                <div class="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-sandstone border-2 border-gold rounded-full flex items-center justify-center text-gold shadow-md">
+                    <i class="fa-solid fa-om text-lg"></i>
+                </div>
+
+                <p class="font-devanagari text-xs font-bold text-terracotta tracking-widest uppercase mb-4">
+                    ॥ मांगलिक आमंत्रण ॥
+                </p>
+
+                <!-- Monogram -->
+                <div class="w-20 h-20 mx-auto rounded-full border-2 border-gold bg-sandstone flex items-center justify-center shadow-inner my-4">
+                    <span class="font-garamond text-3xl font-bold text-terracotta">M <span class="text-gold text-xl">&amp;</span> S</span>
+                </div>
+
+                <!-- Names in Devanagari & English -->
+                <div class="space-y-2 my-6">
+                    <h2 class="font-devanagari text-3xl md:text-4xl font-bold text-terracotta">
+                        आयु. कु. मनीषा <br><span class="text-xl text-gold font-serif">&amp;</span><br> चि. सौरभ
+                    </h2>
+                    <h3 class="font-garamond text-2xl md:text-3xl font-semibold text-espresso italic">
+                        Manisha &amp; Saurabh
+                    </h3>
+                </div>
+
+                <div class="w-24 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent mx-auto my-4"></div>
+
+                <p class="font-devanagari text-sm font-semibold text-espresso">
+                    परिणय संस्कार: बुधवार, 02 दिसंबर 2026
+                </p>
+                <p class="text-xs text-stone-600 font-jost uppercase tracking-widest mt-1">
+                    Varanasi, Uttar Pradesh
+                </p>
+            </div>
+        </section>
+
+        <!-- SECTION 2: BLESSINGS (Shloka & Ancestral Lineage) -->
+        <section id="blessings" class="text-center py-10 bg-champagne/40 rounded-3xl border border-gold/30 p-6 md:p-10 shadow-lg relative">
+            <div class="max-w-2xl mx-auto space-y-6">
+                <!-- Rich Traditional Seated Lord Ganesha SVG Icon -->
+                <div class="w-24 h-24 mx-auto text-terracotta flex items-center justify-center filter drop-shadow-md">
+                    <svg viewBox="0 0 160 160" class="w-full h-full">
+                        <!-- Background Sunburst Halo (Suryamandala) -->
+                        <circle cx="80" cy="80" r="72" fill="#F1E6D6" stroke="#C29B58" stroke-width="1.5" stroke-dasharray="4 2" />
+                        <circle cx="80" cy="80" r="66" fill="none" stroke="#C29B58" stroke-width="0.8" />
+                        
+                        <!-- Crown (Mukut & Jewels) -->
+                        <path d="M 68 28 L 80 8 L 92 28 Q 80 22 68 28 Z" fill="#B85D4B" stroke="#C29B58" stroke-width="1.5" />
+                        <path d="M 62 38 L 80 24 L 98 38 Q 80 32 62 38 Z" fill="#C29B58" stroke="#B85D4B" stroke-width="1" />
+                        <circle cx="80" cy="14" r="3" fill="#C29B58" />
+                        <circle cx="80" cy="30" r="2.5" fill="#B85D4B" />
+
+                        <!-- Ears (Surpa Karna) -->
+                        <path d="M 62 42 C 34 32 26 58 52 68 C 60 71 64 64 64 60" fill="none" stroke="#B85D4B" stroke-width="2.2" stroke-linecap="round" />
+                        <path d="M 98 42 C 126 32 134 58 108 68 C 100 71 96 64 96 60" fill="none" stroke="#B85D4B" stroke-width="2.2" stroke-linecap="round" />
+
+                        <!-- Tilak (Trishul Tripundra) -->
+                        <path d="M 72 40 H 88 M 74 44 H 86 M 76 48 H 84" stroke="#C29B58" stroke-width="1.5" stroke-linecap="round" />
+                        <path d="M 80 38 V 52" stroke="#B85D4B" stroke-width="2" stroke-linecap="round" />
+                        <circle cx="80" cy="54" r="2" fill="#B85D4B" />
+
+                        <!-- Head & Eyes -->
+                        <ellipse cx="80" cy="52" rx="18" ry="16" fill="none" stroke="#B85D4B" stroke-width="1.8" />
+                        <path d="M 70 48 Q 74 51 77 49" stroke="#2E241F" stroke-width="1.2" fill="none" />
+                        <path d="M 90 48 Q 86 51 83 49" stroke="#2E241F" stroke-width="1.2" fill="none" />
+
+                        <!-- Trunk (Vaakratunda Left-curved) -->
+                        <path d="M 76 56 C 76 74 65 82 72 90 C 78 96 88 94 90 87 C 91 82 85 80 82 84 C 80 87 84 89 85 87" fill="none" stroke="#B85D4B" stroke-width="3" stroke-linecap="round" />
+
+                        <!-- Tusks (Right Ekadanta intact, Left broken) -->
+                        <path d="M 70 60 L 63 61" stroke="#C29B58" stroke-width="2.5" stroke-linecap="round" />
+                        <path d="M 90 60 L 95 62" stroke="#C29B58" stroke-width="2.5" stroke-linecap="round" />
+
+                        <!-- Seated Body & Dhoti (Chowki Mudra) -->
+                        <path d="M 64 68 C 50 78 46 95 56 108 C 66 118 94 118 104 108 C 114 95 110 78 96 68" fill="none" stroke="#B85D4B" stroke-width="2" />
+                        <path d="M 52 104 Q 80 116 108 104" stroke="#C29B58" stroke-width="2" fill="none" />
+
+                        <!-- Four Upper & Lower Hands (Chaturbhuj) -->
+                        <!-- Upper Left: Axe (Parashu) -->
+                        <path d="M 46 64 Q 36 56 40 48" stroke="#B85D4B" stroke-width="2" fill="none" />
+                        <circle cx="40" cy="46" r="4" fill="#C29B58" />
+                        <!-- Upper Right: Pasha (Noose/Lotus) -->
+                        <path d="M 114 64 Q 124 56 120 48" stroke="#B85D4B" stroke-width="2" fill="none" />
+                        <circle cx="120" cy="46" r="4" fill="#C29B58" />
+                        <!-- Lower Right: Abhaya Mudra (Blessing Hand) -->
+                        <path d="M 44 86 Q 34 88 38 96" stroke="#B85D4B" stroke-width="2" fill="none" />
+                        <circle cx="38" cy="96" r="3" fill="#B85D4B" />
+                        <!-- Lower Left: Modak Bowl (Laddoo Prasad) -->
+                        <path d="M 116 86 Q 124 90 120 98 Q 112 100 114 92 Z" fill="#F1E6D6" stroke="#C29B58" stroke-width="1.5" />
+                        <circle cx="118" cy="92" r="2" fill="#E28743" />
+                        <circle cx="114" cy="94" r="1.5" fill="#E28743" />
+
+                        <!-- Lotus Throne Base (Kamalasan) -->
+                        <path d="M 42 118 C 54 126 106 126 118 118 Q 130 134 80 138 Q 30 134 42 118 Z" fill="#B85D4B" opacity="0.85" />
+                        <path d="M 50 120 C 65 130 95 130 110 120" stroke="#C29B58" stroke-width="1.5" fill="none" />
+
+                        <!-- Mouse Mount (Mooshakraj at Lotus Base) -->
+                        <ellipse cx="122" cy="132" rx="6" ry="3" fill="#2E241F" />
+                        <circle cx="126" cy="130" r="2" fill="#2E241F" />
+                        <path d="M 128 132 Q 134 130 132 135" stroke="#2E241F" stroke-width="1" fill="none" />
+                        <!-- Tiny Modak in front of Mooshak -->
+                        <circle cx="114" cy="133" r="1.5" fill="#C29B58" />
+                    </svg>
+                </div>
+
+                <!-- Vedic Shloka -->
+                <div class="space-y-2 font-devanagari text-terracotta font-semibold text-sm md:text-base leading-relaxed border-y border-gold/40 py-4">
+                    <p>॥ वक्रतुण्ड महाकाय सूर्यकोटि समप्रभ। ॥</p>
+                    <p>॥ निर्विघ्नं कुरु मे देव सर्वकार्येषु सर्वदा॥</p>
+                </div>
+
+                <!-- Invocations -->
+                <div class="font-devanagari text-xs md:text-sm text-espresso space-y-1 opacity-90">
+                    <p>मंगलम् भगवान् विष्णुः, मंगलम् गरुड़ध्वजः।</p>
+                    <p>मंगलम् पुण्डरीकाक्षः, मंगलाय तनो हरिः॥</p>
+                </div>
+
+                <p class="font-devanagari text-sm text-stone-700 italic pt-2">
+                    "श्री बाबा विश्वनाथ जी एवं माँ अन्नपूर्णा जी की असीम अनुकम्पा एवं आशीर्वाद से..."
+                </p>
+            </div>
+        </section>
+
+        <!-- SECTION 3: FORMAL INVITATION CARD (Exact Physical Card Text) -->
+        <section id="formal-invitation" class="relative">
+            <div class="bg-sandstone gold-border-double rounded-3xl p-6 md:p-12 shadow-2xl space-y-8 relative overflow-hidden">
+                <!-- Lotus Corner Designs -->
+                <div class="absolute top-2 left-2 text-gold opacity-40 w-8 h-8">❀</div>
+                <div class="absolute top-2 right-2 text-gold opacity-40 w-8 h-8">❀</div>
+                <div class="absolute bottom-2 left-2 text-gold opacity-40 w-8 h-8">❀</div>
+                <div class="absolute bottom-2 right-2 text-gold opacity-40 w-8 h-8">❀</div>
+
+                <!-- Header Invitation Wording -->
+                <div class="text-center space-y-2">
+                    <span class="font-devanagari text-xs text-gold font-bold tracking-widest uppercase">स्नेही स्वजन,</span>
+                    <h3 class="font-devanagari text-2xl md:text-3xl font-bold text-terracotta">!! परिग्रहण संस्कार !!</h3>
+                    <p class="font-devanagari text-xs md:text-sm text-stone-700 max-w-xl mx-auto leading-relaxed">
+                        के शुभ अवसर पर अपनी उपस्थिति की मृदुल ज्योत्स्ना से अनिंसिचित कर नव युगल के भावी जीवन को आलोकित कर हमें अनुग्रहीत करें।
+                    </p>
+                </div>
+
+                <!-- Groom & Bride Lineage (2-Column Grid) -->
+                <div class="grid md:grid-cols-2 gap-8 border-t border-b border-gold/30 py-8 font-devanagari text-sm">
+                    <!-- Bride Details -->
+                    <div class="bg-champagne/40 p-6 rounded-2xl border border-gold/30 text-center space-y-2">
+                        <span class="text-xs text-terracotta font-bold">वधू पक्ष</span>
+                        <h4 class="text-xl font-bold text-terracotta">आयु. कु. मनीषा विश्वकर्मा</h4>
+                        <p class="text-xs text-stone-700">सुपुत्री: स्व. सिद्धनाथ विश्वकर्मा एवं स्व. श्रीमती हंसा देवी</p>
+                        <p class="text-xs text-stone-700">सुपुत्री: श्री अनिल विश्वकर्मा एवं श्रीमती संगीता विश्वकर्मा</p>
+                        <p class="text-xs text-stone-600 mt-2 italic">ग्राम: अहिरीली, पोस्ट: चंदवक, जिला: जौनपुर</p>
+                    </div>
+
+                    <!-- Groom Details -->
+                    <div class="bg-champagne/40 p-6 rounded-2xl border border-gold/30 text-center space-y-2">
+                        <span class="text-xs text-terracotta font-bold">वर पक्ष</span>
+                        <h4 class="text-xl font-bold text-terracotta">चि. सौरभ विश्वकर्मा</h4>
+                        <p class="text-xs text-stone-700">सुपुत्र: स्व. हीरालाल विश्वकर्मा एवं श्रीमती श्यामा देवी</p>
+                        <p class="text-xs text-stone-700">सुपुत्र: श्री सूरज कुमार एवं श्रीमती रीता विश्वकर्मा</p>
+                        <p class="text-xs text-stone-600 mt-2 italic">गोपीगंज, ज्ञानपुर रोड, जिला: भदोही</p>
+                    </div>
+                </div>
+
+                <!-- Bal Aagrah & Family Compliments -->
+                <div class="grid md:grid-cols-3 gap-6 font-devanagari text-xs text-center">
+                    <!-- Bal Aagrah -->
+                    <div class="bg-white/60 p-4 rounded-xl border border-gold/20">
+                        <h5 class="font-bold text-terracotta mb-1">!! बाल आग्रह !!</h5>
+                        <p class="text-stone-700 leading-relaxed">
+                            ढोल तासे हुए पुराने डीजे का जमाना है हमारी बुआ / मौसी की शादी में जरूर-जरूर से आना है...
+                        </p>
+                        <p class="text-terracotta font-semibold mt-2">
+                            - आशीष, शानवी, दूर्वी, अंश, रिद्धि, पूर्वी, सनाया, आरस्वी
+                        </p>
+                    </div>
+
+                    <!-- Swagatakanshi -->
+                    <div class="bg-white/60 p-4 rounded-xl border border-gold/20">
+                        <h5 class="font-bold text-terracotta mb-1">!! स्वागताकांक्षी !!</h5>
+                        <p class="text-stone-800 font-medium leading-relaxed">
+                            राज कुमार विश्वकर्मा, सभाजीत विश्वकर्मा, रमाशंकर विश्वकर्मा, विपिन विश्वकर्मा
+                        </p>
+                    </div>
+
+                    <!-- Darshanabhilashi & Vineet -->
+                    <div class="bg-white/60 p-4 rounded-xl border border-gold/20">
+                        <h5 class="font-bold text-terracotta mb-1">!! दर्शनाभिलाषी एवं विनीत !!</h5>
+                        <p class="text-stone-800 font-medium leading-relaxed">
+                            अमित, विकास, नितिन, अनिकेत, अभिषेक, आदित्य एवं समस्त विश्वकर्मा परिवार
+                        </p>
+                        <p class="text-stone-700 font-semibold mt-2">
+                            विनीत: उमेशलाल विश्वकर्मा, राजकुमार विश्वकर्मा
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: LIVE COUNTDOWN TO SHUBH MUHURAT -->
+        <section id="countdown" class="text-center py-10 bg-gradient-to-r from-terracotta to-amber-800 rounded-3xl text-white shadow-2xl p-6 md:p-10 relative overflow-hidden">
+            <!-- Decorative Backdrop Ring -->
+            <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">❀</div>
+            <p class="font-devanagari text-xs font-semibold tracking-widest uppercase text-goldlight mb-2">
+                ॥ शुभ मुहूर्त परिणय संस्कार काउन्टडाउन ॥
+            </p>
+            <h3 class="font-garamond text-3xl md:text-4xl font-bold mb-6">Counting Down to the Sacred Muhurat</h3>
+
+            <div class="grid grid-cols-4 gap-3 max-w-md mx-auto font-jost">
+                <div class="bg-black/30 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+                    <span id="days" class="block text-2xl md:text-4xl font-bold text-goldlight">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-wider">Days</span>
+                </div>
+                <div class="bg-black/30 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+                    <span id="hours" class="block text-2xl md:text-4xl font-bold text-goldlight">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-wider">Hours</span>
+                </div>
+                <div class="bg-black/30 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+                    <span id="minutes" class="block text-2xl md:text-4xl font-bold text-goldlight">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-wider">Mins</span>
+                </div>
+                <div class="bg-black/30 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+                    <span id="seconds" class="block text-2xl md:text-4xl font-bold text-goldlight">00</span>
+                    <span class="text-[10px] md:text-xs uppercase tracking-wider">Secs</span>
+                </div>
+            </div>
+            <p class="text-xs text-goldlight/80 mt-4 font-devanagari">बुधवार, 02 दिसंबर 2026 • रात्रि लग्नानुसार</p>
+        </section>
+
+        <!-- SECTION 5: WEDDING FUNCTIONS (Timeline) -->
+        <section id="functions" class="space-y-8">
+            <div class="text-center space-y-2">
+                <span class="font-devanagari text-xs text-gold font-bold tracking-widest uppercase">॥ मांगलिक कार्यक्रम ॥</span>
+                <h3 class="font-garamond text-3xl font-bold text-terracotta">Wedding Ceremonies</h3>
+            </div>
+
+            <!-- Vertical Timeline Cards Grid -->
+            <div class="grid md:grid-cols-2 gap-6 font-devanagari">
+                <!-- Function 1: Haldi -->
+                <div class="bg-champagne/60 p-6 rounded-2xl border border-gold/40 shadow-md relative hover:shadow-xl transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="px-3 py-1 bg-terracotta text-white text-xs font-bold rounded-full">1. शुभ हल्दी</span>
+                        <span class="text-xs text-stone-600 font-semibold">सोमवार</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-espresso">दिनांक 30 नवंबर 2026</h4>
+                    <p class="text-xs text-stone-600 mt-1">स्थल: निज निवास स्थान</p>
+                    <div class="mt-4 pt-4 border-t border-gold/30 flex justify-between items-center text-xs">
+                        <a href="https://maps.google.com" target="_blank" class="text-terracotta font-semibold hover:underline"><i class="fa-solid fa-location-dot mr-1"></i> मैप्स देखें</a>
+                        <button onclick="downloadIcs('Haldi Ceremony', '2026-11-30T10:00:00')" class="text-stone-600 hover:text-terracotta"><i class="fa-regular fa-calendar-plus mr-1"></i> कैलेंडर जोड़ें</button>
+                    </div>
+                </div>
+
+                <!-- Function 2: Mehendi -->
+                <div class="bg-champagne/60 p-6 rounded-2xl border border-gold/40 shadow-md relative hover:shadow-xl transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="px-3 py-1 bg-terracotta text-white text-xs font-bold rounded-full">2. शुभ मेहंदी</span>
+                        <span class="text-xs text-stone-600 font-semibold">मंगलवार, सायं</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-espresso">दिनांक 01 दिसंबर 2026</h4>
+                    <p class="text-xs text-stone-600 mt-1">स्थल: निज निवास स्थान</p>
+                    <div class="mt-4 pt-4 border-t border-gold/30 flex justify-between items-center text-xs">
+                        <a href="https://maps.google.com" target="_blank" class="text-terracotta font-semibold hover:underline"><i class="fa-solid fa-location-dot mr-1"></i> मैप्स देखें</a>
+                        <button onclick="downloadIcs('Mehendi Ceremony', '2026-12-01T16:00:00')" class="text-stone-600 hover:text-terracotta"><i class="fa-regular fa-calendar-plus mr-1"></i> कैलेंडर जोड़ें</button>
+                    </div>
+                </div>
+
+                <!-- Function 3: Shubh Vivah (Pheras) -->
+                <div class="bg-sandstone p-6 rounded-2xl border-2 border-gold shadow-lg relative hover:shadow-xl transition-shadow md:col-span-2">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="px-4 py-1 bg-amber-700 text-white text-xs font-bold rounded-full">3. शुभ विवाह (परिणय संस्कार)</span>
+                        <span class="text-xs text-terracotta font-bold">बुधवार, रात्रि लग्नानुसार</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-terracotta">दिनांक 02 दिसंबर 2026</h4>
+                    <p class="text-sm font-bold text-espresso mt-2">वैवाहिक स्थल – "जे.पी. मैरिज लॉन"</p>
+                    <p class="text-xs text-stone-600">दानगंज, वाराणसी</p>
+                    <p class="text-xs text-stone-700 italic mt-2">Followed by Dinner &amp; Ashirwad</p>
+                    <div class="mt-4 pt-4 border-t border-gold/30 flex justify-between items-center text-xs">
+                        <a href="https://maps.google.com/maps?q=JP+Marriage+Lawn+Danganj+Varanasi" target="_blank" class="px-4 py-2 bg-terracotta text-white rounded-lg font-semibold hover:bg-amber-800 transition-colors"><i class="fa-solid fa-map-location-dot mr-1"></i> Get Directions (गूगल मैप्स)</a>
+                        <button onclick="downloadIcs('Shubh Vivah Pheras', '2026-12-02T19:00:00')" class="px-4 py-2 bg-champagne text-terracotta rounded-lg font-semibold border border-gold hover:bg-gold hover:text-white transition-colors"><i class="fa-regular fa-calendar-plus mr-1"></i> Add to Calendar</button>
+                    </div>
+                </div>
+
+                <!-- Function 4: Vidai -->
+                <div class="bg-champagne/60 p-6 rounded-2xl border border-gold/40 shadow-md relative hover:shadow-xl transition-shadow md:col-span-2 text-center">
+                    <div class="inline-block px-3 py-1 bg-stone-700 text-white text-xs font-bold rounded-full mb-2">4. विदाई</div>
+                    <h4 class="text-lg font-bold text-espresso">गुरुवार, 03 दिसंबर 2026 (प्रातः)</h4>
+                    <p class="text-xs text-stone-600">शुभ विदाई एवं आशीर्वाद समारोह</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: GALLERY (Photo Placeholders) -->
+        <section id="gallery" class="space-y-6 text-center">
+            <div class="space-y-2">
+                <span class="font-devanagari text-xs text-gold font-bold tracking-widest uppercase">॥ झलकियां ॥</span>
+                <h3 class="font-garamond text-3xl font-bold text-terracotta">Couple Gallery</h3>
+            </div>
+           <div class="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
+    <!-- फोटो 1 -->
+    <div class="bg-champagne/60 border border-antique-gold/40 rounded-2xl p-2 shadow hover:scale-105 transition-transform">
+        <img src="wedding-photo.jpeg" alt="Wedding Photo" class="w-full h-48 md:h-64 object-cover rounded-xl" />
+    </div>
+    
+    <!-- अगर दूसरी फोटो हो तो -->
+    <div class="bg-champagne/60 border border-antique-gold/40 rounded-2xl p-2 shadow hover:scale-105 transition-transform">
+      <img src="photo2.jpeg" alt="Pre-wedding" class="w-full h-48 md:h-64 object-contain rounded-xl bg-champagne/20" />
+    </div>
+     <div class="bg-champagne/60 border border-antique-gold/40 rounded-2xl p-2 shadow hover:scale-105 transition-transform">
+      <img src="photo3.png" alt="Pre-wedding" class="w-full h-48 md:h-64 object-contain rounded-xl bg-champagne/20" />
+    </div>
+</div>
+</div>
+
+        </section>
+
+        <!-- SECTION 7: CLOSING & RSVP (Share & Actions) -->
+        <section id="closing" class="text-center py-12 bg-sandstone border-2 border-gold rounded-3xl p-6 md:p-10 shadow-2xl space-y-6">
+            <div class="w-12 h-12 mx-auto text-terracotta">
+                <i class="fa-solid fa-hands-praying text-3xl"></i>
+            </div>
+            <h3 class="font-devanagari text-2xl font-bold text-terracotta">आपकी उपस्थिति ही हमारा परम सौभाग्य होगी।</h3>
+            <p class="font-devanagari text-xs text-stone-600 max-w-md mx-auto">
+                कृपया पधारकर नव-दम्पत्ति को अपना असीम स्नेह एवं आशीर्वाद प्रदान करें।
+            </p>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap justify-center gap-3 pt-4 no-print">
+                <button onclick="shareWhatsApp()" class="px-5 py-2.5 bg-emerald-600 text-white rounded-full font-semibold text-xs shadow hover:bg-emerald-700 transition-colors flex items-center space-x-2">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                    <span>WhatsApp पर शेयर करें</span>
+                </button>
+                <button onclick="copyInviteLink()" class="px-5 py-2.5 bg-champagne text-espresso border border-gold rounded-full font-semibold text-xs shadow hover:bg-gold hover:text-white transition-colors flex items-center space-x-2">
+                    <i class="fa-regular fa-copy text-sm"></i>
+                    <span>निमंत्रण लिंक कॉपी करें</span>
+                </button>
+                <button onclick="window.print()" class="px-5 py-2.5 bg-terracotta text-white rounded-full font-semibold text-xs shadow hover:bg-amber-800 transition-colors flex items-center space-x-2">
+                    <i class="fa-solid fa-file-pdf text-sm"></i>
+                    <span>कार्ड डाउनलोड (PDF)</span>
+                </button>
+            </div>
+
+            <!-- Back to top -->
+            <div class="pt-6 border-t border-gold/30">
+                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="text-xs text-gold font-semibold hover:text-terracotta">
+                    <i class="fa-solid fa-arrow-up mr-1"></i> वापिस ऊपर जाएं (Back to Top)
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // CONFIGURATION & STATE
+        let isEnglish = false;
+        let isAudioPlaying = false;
+        const weddingAudio = document.getElementById('weddingAudio');
+
+        // Web Audio API Fallback Synthesizer for Shehnai/Tanpura Harmonics
+        let audioCtx = null;
+        let isSynthPlaying = false;
+        let synthInterval = null;
+
+        function playSyntheticHarmonics() {
+            if (isSynthPlaying) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                isSynthPlaying = true;
+                const notes = [293.66, 329.63, 369.99, 440.00, 493.88, 554.37, 587.33]; // Raga Yaman / Bhairavi Shehnai frequencies
+                let noteIdx = 0;
+
+                synthInterval = setInterval(() => {
+                    if (!isSynthPlaying || !audioCtx) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(notes[noteIdx % notes.length], audioCtx.currentTime);
+                    noteIdx = (noteIdx + Math.floor(Math.random() * 3) + 1) % notes.length;
+
+                    gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.3);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.8);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 1.9);
+                }, 800);
+            } catch (e) {
+                console.log("Audio synth error", e);
+            }
+        }
+
+        function stopSyntheticHarmonics() {
+            isSynthPlaying = false;
+            if (synthInterval) clearInterval(synthInterval);
+        }
+
+        // 1. Gate Opening Function
+        function openRoyalGate() {
+            const overlay = document.getElementById('gate-overlay');
+            overlay.classList.add('gate-open');
+
+            // Play music on user gesture
+            toggleAudio(true);
+
+            // Trigger petal animation effect
+            startPetalParallax();
+        }
+
+        // 2. Audio Controls
+        function toggleAudio(forcePlay = false) {
+            if (forcePlay) isAudioPlaying = false;
+
+            if (isAudioPlaying) {
+                weddingAudio.pause();
+                stopSyntheticHarmonics();
+                isAudioPlaying = false;
+            } else {
+                const playPromise = weddingAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        isAudioPlaying = true;
+                        stopSyntheticHarmonics();
+                        updateAudioIcon();
+                    }).catch(err => {
+                        console.log("Direct MP3 play fallback to synth: ", err);
+                        playSyntheticHarmonics();
+                        isAudioPlaying = true;
+                        updateAudioIcon();
+                    });
+                }
+            }
+            updateAudioIcon();
+        }
+
+        function updateAudioIcon() {
+            const icon = document.getElementById('audioIcon');
+            if (isAudioPlaying) {
+                icon.className = "fa-solid fa-volume-high text-xs text-terracotta animate-pulse";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-xs text-stone-400";
+            }
+        }
+
+        // Auto Pause audio when tab is inactive
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (isAudioPlaying) {
+                    weddingAudio.pause();
+                    stopSyntheticHarmonics();
+                }
+            } else {
+                if (isAudioPlaying) {
+                    weddingAudio.play().catch(() => playSyntheticHarmonics());
+                }
+            }
+        });
+
+        // 3. Language Toggle (Hindi / English)
+        function toggleLanguage() {
+            isEnglish = !isEnglish;
+            document.getElementById('langBtnText').innerText = isEnglish ? 'हिंदी' : 'English';
+            
+            const elements = document.querySelectorAll('.lang-txt');
+            elements.forEach(el => {
+                if (isEnglish && el.dataset.en) {
+                    el.innerText = el.dataset.en;
+                } else if (!isEnglish && el.dataset.hi) {
+                    el.innerText = el.dataset.hi;
+                }
+            });
+        }
+
+        // 4. Live Countdown to Shubh Muhurat (Dec 02, 2026 19:00:00)
+        const vivahDate = new Date("2026-12-02T19:00:00+05:30").getTime();
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const diff = vivahDate - now;
+
+            if (diff > 0) {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById('days').innerText = String(days).padStart(2, '0');
+                document.getElementById('hours').innerText = String(hours).padStart(2, '0');
+                document.getElementById('minutes').innerText = String(minutes).padStart(2, '0');
+                document.getElementById('seconds').innerText = String(seconds).padStart(2, '0');
+            }
+        }
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        // 5. Download ICS Calendar Event
+        function downloadIcs(title, startTime) {
+            const icsData = 
+`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Shubh Vivah//NONGNS
+BEGIN:VEVENT
+SUMMARY:${title} - Manisha & Saurabh Wedding
+DTSTART:${startTime.replace(/[-:]/g, '')}
+LOCATION:JP Marriage Lawn, Danganj, Varanasi
+DESCRIPTION:Shubh Vivah Celebrations of Manisha and Saurabh.
+END:VEVENT
+END:VCALENDAR`;
+
+            const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `${title}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 6. Share Triggers
+        function shareWhatsApp() {
+            const text = encodeURIComponent("॥ ॐ श्री गणेशाय नमः ॥\n\nआप श्री को मनीष एवं सौरभ के परिणय संस्कार (शुभ विवाह) में सहर्ष आमंत्रित किया जाता है।\n\nदिनांक: 02 दिसंबर 2026\nस्थान: जे.पी. मैरिज लॉन, दानगंज, वाराणसी\n\nडिजिटल कार्ड देखें: " + window.location.href);
+            window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+        }
+
+        function copyInviteLink() {
+            const input = document.createElement('input');
+            input.value = window.location.href;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            alert('निमंत्रण लिंक कॉपी हो गया है! (Invitation link copied)');
+        }
+
+        // 7. Canvas Petal Parallax Animation Effect
+        function startPetalParallax() {
+            const canvas = document.getElementById('petalCanvas');
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            const petals = [];
+            const colors = ['#B85D4B', '#E28743', '#C29B58', '#FAF5EE'];
+
+            for (let i = 0; i < 35; i++) {
+                petals.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height - height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speedY: Math.random() * 1.5 + 0.8,
+                    speedX: Math.random() * 0.8 - 0.4,
+                    angle: Math.random() * 360
+                });
+            }
+
+            function animatePetals() {
+                ctx.clearRect(0, 0, width, height);
+                petals.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.angle += 1;
+
+                    if (p.y > height) {
+                        p.y = -10;
+                        p.x = Math.random() * width;
+                    }
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.angle * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = 0.7;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, p.size, p.size / 2, 0, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                requestAnimationFrame(animatePetals);
+            }
+            animatePetals();
+        }
+    </script>
+</body>
+</html>
